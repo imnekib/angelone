@@ -108,8 +108,8 @@ def fetch_historical_data_with_cache(obj, historical_data_config):
         from_date_str = historical_data_config["fromdate"]
         to_date_str = historical_data_config["todate"]
 
-        from_date = pd.to_datetime(from_date_str, format="%Y-%m-%d %H:%M")
-        to_date = pd.to_datetime(to_date_str, format="%Y-%m-%d %H:%M")
+        from_date = pd.to_datetime(from_date_str, format="%Y-%m-%d %H:%M:%S")
+        to_date = pd.to_datetime(to_date_str, format="%Y-%m-%d %H:%M:%S")
 
         # Ensure from_date and to_date are timezone-naive
         from_date = from_date.tz_localize(None)
