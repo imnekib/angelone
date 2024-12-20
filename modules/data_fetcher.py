@@ -20,6 +20,9 @@ def fetch_tokens_from_file(file_path="data/instruments.xlsx", num_files_to_load=
         logging.info(f"Attempting to read names and tokens from {file_path}")
         df = pd.read_excel(file_path, usecols=[0, 4])  # Column A = 'name', Column E = 'token'
 
+        # Drop rows with missing values in the columns
+        df = df.dropna(subset=[df.columns[0], df.columns[1]])
+
         if num_files_to_load is not None:
             df = df.iloc[:num_files_to_load]  # Limit rows
 
@@ -61,20 +64,24 @@ def save_data_to_db(symboltoken, interval, data):
             WHERE symboltoken = ? AND interval = ?
         """
         existing_timestamps = pd.read_sql_query(existing_data_query, conn, params=(symboltoken, interval))
-        
+
         # Filter out rows with timestamps already in the database
         if not existing_timestamps.empty:
             existing_timestamps = existing_timestamps['timestamp'].astype(str).tolist()
             data = data[~data['timestamp'].astype(str).isin(existing_timestamps)]
-        
+
+        # Sanitize data by dropping rows with NaN values
+        data = data.dropna()
+
+        if data.empty:
+            logging.warning(f"No new data to save for {symboltoken} ({interval}). All records already exist or contain NaN values.")
+            return
+
         # If there's any data left to save, insert it
-        if not data.empty:
-            data['symboltoken'] = symboltoken
-            data['interval'] = interval
-            data.to_sql('historical_data', conn, if_exists='append', index=False, method='multi')
-            logging.info(f"Successfully saved {len(data)} new records to the database.")
-        else:
-            logging.info(f"No new data to save for {symboltoken} ({interval}). All records already exist in the database.")
+        data['symboltoken'] = symboltoken
+        data['interval'] = interval
+        data.to_sql('historical_data', conn, if_exists='append', index=False, method='multi')
+        logging.info(f"Successfully saved {len(data)} new records to the database.")
 
     except Exception as e:
         logging.error(f"Error saving data to the database: {e}")
@@ -95,7 +102,6 @@ def load_data_from_db(symboltoken, interval, from_date, to_date):
     return data
 
 # Fetch historical data with caching
-
 def fetch_historical_data_with_cache(obj, historical_data_config):
     try:
         # Validate required keys
@@ -180,8 +186,16 @@ def fetch_historical_data_with_cache(obj, historical_data_config):
             missing_data.drop_duplicates(subset=['timestamp'], inplace=True)
             save_data_to_db(historical_data_config["symboltoken"], historical_data_config["interval"], missing_data)
 
-        # Combine cached and missing data
-        all_data = pd.concat([cached_data, missing_data]).drop_duplicates(subset=['timestamp']).sort_values(by='timestamp')
+        # Combine cached and missing data with handling for empty or all-NA DataFrames
+        if not cached_data.empty and not missing_data.empty:
+            all_data = pd.concat([cached_data, missing_data]).drop_duplicates(subset=['timestamp']).sort_values(by='timestamp')
+        elif not cached_data.empty:
+            all_data = cached_data.sort_values(by='timestamp')
+        elif not missing_data.empty:
+            all_data = missing_data.sort_values(by='timestamp')
+        else:
+            all_data = pd.DataFrame()  # Return an empty DataFrame if both are empty
+
         return all_data
 
     except Exception as e:
