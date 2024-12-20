@@ -1,4 +1,4 @@
-# Nothing Bot
+# Nothing
 
 This repository contains a feature-rich trading bot implemented in Python. The bot performs authentication, data fetching, indicator calculation, signal generation, trade simulation, and reporting for stocks traded on the Angel One platform. Below is the detailed overview of the repository, its structure, and functionality.
 
