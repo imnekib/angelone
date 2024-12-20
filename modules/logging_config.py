@@ -9,7 +9,7 @@ def setup_logging(log_file='logs/trading_bot.log', level=logging.INFO):
     os.makedirs(os.path.dirname(log_file), exist_ok=True)
     logging.basicConfig(
         level=level,
-        format='%(asctime)s [%(levelname)s] %(name)s:%(lineno)d] %(message)s',
+        format='%(asctime)s - [%(levelname)s] - %(thread)d - %(filename)s.%(funcName)s(%(lineno)d) - %(message)s',
         handlers=[
             logging.FileHandler(log_file),
             logging.StreamHandler(sys.stdout)
