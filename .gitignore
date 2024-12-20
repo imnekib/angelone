@@ -6,3 +6,5 @@ results/
 *.db
 __pycache__/
 *.xlsx
+data/
+tokens.json
