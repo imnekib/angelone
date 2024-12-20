@@ -1,3 +1,7 @@
 venv/
 .env
 config.json
+logs/
+results/
+*.db
+__pycache__/
